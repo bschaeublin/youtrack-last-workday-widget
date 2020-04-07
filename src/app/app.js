@@ -6,9 +6,10 @@ import Select from '@jetbrains/ring-ui/components/select/select';
 import Panel from '@jetbrains/ring-ui/components/panel/panel';
 import Button from '@jetbrains/ring-ui/components/button/button';
 import Avatar, {Size} from '@jetbrains/ring-ui/components/avatar/avatar';
-import Tag from '@jetbrains/ring-ui/components/tag/tag';
+import Badge from '@jetbrains/ring-ui/components/badge/badge';
 import Group from '@jetbrains/ring-ui/components/group/group';
 import Text from '@jetbrains/ring-ui/components/text/text';
+import Icon from '@jetbrains/ring-ui/components/icon/icon';
 import checkmarkIcon from '@jetbrains/icons/checkmark.svg';
 import userWarning from '@jetbrains/icons/user-warning.svg';
 import EmptyWidget, {EmptyWidgetFaces} from '@jetbrains/hub-widget-ui/dist/empty-widget';
@@ -90,6 +91,7 @@ class Widget extends Component {
     if (config && config.agile) {
       let timeTrackingSettings = await getGlobalTimeTrackingSettings(dashboardApi, this.serviceId);
       let dates = getLastWorkDate(timeTrackingSettings.workDays);
+      this.setState({minutesWarning: config.minutesWarning});
       this.setState({minutesADay: timeTrackingSettings.minutesADay });
       var query = `Board ${config.agile.name}: {${config.agile.currentSprint.name}}`;
       let data = await getTimeTracking(dashboardApi, query, this.serviceId, timeTrackingSettings, dates, config.minutesWarning);
@@ -247,7 +249,7 @@ class Widget extends Component {
   renderWidgetBody() {    
     console.log('serviceId', this.serviceId);
     console.log('render called');
-    const {data, minutesADay} = this.state;
+    const {data, minutesADay, minutesWarning} = this.state;
 
     return (
       <div className="widget">
@@ -256,17 +258,18 @@ class Widget extends Component {
           ?       
           (
             <div>
-              <Group>
+              <Group className="lead-text-time-track">
                 <Text>Ziel:</Text>
                 <Text info>{ (minutesADay / 60)}h</Text>
+                <Text>Toleranz: </Text>
+                <Text info>+/- {minutesWarning}m</Text>
               </Group>
 
               <table>
                 <thead>
                   <tr>
                     <th></th>
-                    <th align="left">Entwickler</th>
-                    <th align="right">Aufgewendet</th>
+                    <th align="left"></th>
                   </tr>
                 </thead>
                 <tbody>
@@ -275,6 +278,20 @@ class Widget extends Component {
                   }
                 </tbody>
               </table>
+
+              {
+                data.filter(item => item.exceedThreshold).length === 0 ?
+                (<div class="time-track-face-container">
+                  <span class="time-track-face">{EmptyWidgetFaces.HAPPY}</span>
+                  <Text info>Geschafft!</Text>
+                  </div>)
+              : (<div class="time-track-face-container">
+                  <span class="time-track-face">{EmptyWidgetFaces.OK}</span>
+                  <br />
+                  <Text info>Optimierungspotenzial</Text>
+                </div>)
+              }
+              
           </div>)
           : (
             <EmptyWidget
@@ -299,7 +316,7 @@ class Widget extends Component {
       <ConfigurableWidget
         isConfiguring={this.state.isConfiguring}
         dashboardApi={this.props.dashboardApi}
-        widgetTitle={'Rapportierung gestern'}
+        widgetTitle={'Rapportierung vergangener Arbeitstag'}
         widgetLoader={this.isLoading}
         Configuration={this.renderConfiguration.bind(this)}
         Content={this.renderContent.bind(this)}
@@ -312,10 +329,19 @@ class Widget extends Component {
     return array.map(item =>
       {
         let isExceeding = item.exceedThreshold;
-        return <tr style={{color: isExceeding ? 'red': 'green'}} key={item.userName}>
-          <td><Avatar size={Size.Size48} url={item.avatar}/></td>
-          <td>{item.userName}</td>
-          <td><Tag rgTagIcon={ isExceeding ? userWarning: checkmarkIcon} rgTagTitle="I am an icon title" readOnly>{item.spentTimeDisplay}</Tag></td>
+        return <tr key={item.userName}>
+          <td><Avatar size={Size.Size56} url={item.avatar}/></td>
+          <td style={{verticalAlign: 'top'}}>
+            <Text>
+              <b>{item.userName}</b>
+            </Text>            
+            <div>
+              <Badge valid={!isExceeding} gray={isExceeding} className="badge-time-track">
+                {item.spentTimeDisplay}
+                <Icon size={Icon.Size.Size14} glyph={isExceeding ? userWarning : checkmarkIcon} className="icon-time-track"></Icon>
+              </Badge>
+            </div>
+          </td>
         </tr>
       }
     

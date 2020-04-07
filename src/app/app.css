@@ -15,3 +15,24 @@
   margin: 0;
   padding: 0;
 }
+
+.icon-time-track {
+  margin-left: 5px;
+}
+
+.lead-text-time-track {
+  margin-left: 5px;
+}
+
+.time-track-face-container {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  width: 100%;
+  transform: translate(0, -50%);
+  text-align: center;
+}
+
+.time-track-face {
+  font-size: 24px;
+}
