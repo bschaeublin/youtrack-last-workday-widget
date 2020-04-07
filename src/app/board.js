@@ -19,7 +19,8 @@
     // workdays ex. = [1,2,3,4,5]
     // workdays ex2. = [1,3,5]
 
-    let lastWorkDate = Date.now();
+    let now = new Date();
+    let lastWorkDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0);
     let day = new Date().getDay(); // 2
 
     let iWorkDays = workDays.indexOf(day);
@@ -46,8 +47,8 @@
       day = lastWorkDate.getDay();
     }
 
-    let startDate = addDays(lastWorkDate, -1);
-    return { startDate: startDate.getTime(), endDate: lastWorkDate.getTime() };
+    let endDate = new Date(lastWorkDate.getFullYear(), lastWorkDate.getMonth(), lastWorkDate.getDate(), 23, 59, 59);
+    return { startDate: lastWorkDate.getTime(), endDate: endDate.getTime() };
   }
 
 

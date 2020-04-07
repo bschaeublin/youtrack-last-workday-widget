@@ -26,7 +26,6 @@ import {
   isCurrentSprint,
   getLastWorkDate
 } from './board';
-import { Input } from '@jetbrains/ring-ui/components/input/input';
 
 class Widget extends Component {
   static propTypes = {
@@ -99,7 +98,6 @@ class Widget extends Component {
     }
 
     this.setState({agiles});
-    console.log('agiles', agiles);
   }
 
   saveConfig = async () => {
@@ -116,7 +114,6 @@ class Widget extends Component {
 
   changeMinutesWarning = selected => {
     const minutes = (selected.model || {}).id || selected;
-    console.log('minutes changed', selected.model);
     this.setState({minutesWarning: minutes});
   }
 
@@ -156,9 +153,7 @@ class Widget extends Component {
     }
 
     this.props.dashboardApi.enterConfigMode();
-
     const {agile, agiles, sprint, currentSprintMode, minutesWarning} = this.state;
-    console.log('agiles2', agiles, this.state);
 
     const getSprintsOptions = () => {
       const sprints = (agile.sprints || []);
@@ -178,13 +173,11 @@ class Widget extends Component {
 
     const getWarningLimits = () => {
       let data = [0, 30, 60, 90, 120, 180].map(Widget.numberToSelectItem);
-      console.log('warninglimit', data);
       return data;
     }
 
     const getSelectedLimit = () => {
       let limit = Widget.numberToSelectItem(minutesWarning);
-      console.log('selected limit', limit);
       return limit;
     }
 
@@ -208,7 +201,7 @@ class Widget extends Component {
                 selected={Widget.toSelectItem(agile)}
                 onChange={this.changeAgile.bind(this)}
                 filter
-                label="Select Agile Board"
+                label="Agiles Board auswählen"
               />
            </div>
 
@@ -226,7 +219,7 @@ class Widget extends Component {
                 }
                 onSelect={this.changeSprint}
                 filter
-                label={'Select sprint'}
+                label={'Sprint auswählen'}
               />
             </div>
             )
@@ -242,13 +235,11 @@ class Widget extends Component {
 
   static getCurrentSprintSelectOption = currentSprint => ({
     key: 'current-sprint',
-    label: 'Always use current sprint',
+    label: 'Immer aktuellen Sprint verwenden',
     description: currentSprint ? currentSprint.name : ''
   })
 
   renderWidgetBody() {    
-    console.log('serviceId', this.serviceId);
-    console.log('render called');
     const {data, minutesADay, minutesWarning} = this.state;
 
     return (
@@ -296,7 +287,7 @@ class Widget extends Component {
           : (
             <EmptyWidget
               face={EmptyWidgetFaces.JOY}
-              message={'Select "Edit..." option in widget dropdown to configure text color'}
+              message={'Wähle die "Bearbeiten..." Option im Widget Menu, um es zu konfigurieren.'}
             />
           )}
       </div>

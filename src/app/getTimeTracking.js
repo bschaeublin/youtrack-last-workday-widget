@@ -9,7 +9,6 @@ export default async function (dashboardApi, query, serviceId, workTimeSettings,
   ? window.location.ancestorOrigins[window.location.ancestorOrigins.length -1]
   : window.location;
 
-  console.log('url', url, window.location);
   for(let userId in grouped) {
     let spentTime = 0;
     for(let i = 0; i < grouped[userId].length; i++) {
@@ -23,7 +22,7 @@ export default async function (dashboardApi, query, serviceId, workTimeSettings,
       avatar: `${url}${grouped[userId][0].author.avatarUrl}`,
       exceedThreshold: (spentTime + warningMinutes < w.minutesADay)
     }
-    console.log('p',p, w.minutesADay, spentTime + warningMinutes);
+
     data.push(p);
   }
 
