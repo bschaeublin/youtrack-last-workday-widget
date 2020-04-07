@@ -5,6 +5,12 @@ import {render} from 'react-dom';
 import Select from '@jetbrains/ring-ui/components/select/select';
 import Panel from '@jetbrains/ring-ui/components/panel/panel';
 import Button from '@jetbrains/ring-ui/components/button/button';
+import Avatar, {Size} from '@jetbrains/ring-ui/components/avatar/avatar';
+import Tag from '@jetbrains/ring-ui/components/tag/tag';
+import Group from '@jetbrains/ring-ui/components/group/group';
+import Text from '@jetbrains/ring-ui/components/text/text';
+import checkmarkIcon from '@jetbrains/icons/checkmark.svg';
+import userWarning from '@jetbrains/icons/user-warning.svg';
 import EmptyWidget, {EmptyWidgetFaces} from '@jetbrains/hub-widget-ui/dist/empty-widget';
 import ConfigurableWidget from '@jetbrains/hub-widget-ui/dist/configurable-widget';
 import LoaderInline from '@jetbrains/ring-ui/components/loader-inline/loader-inline';
@@ -12,17 +18,25 @@ import List from '@jetbrains/ring-ui/components/list/list';
 import './app.css';
 import getTimeTracking from './getTimeTracking';
 import getAgiles from './getAgiles';
+import getGlobalTimeTrackingSettings from './getGlobalTimeTrackingSettings';
 
 import {
   areSprintsEnabled,
-  isCurrentSprint
+  isCurrentSprint,
+  getLastWorkDate
 } from './board';
+import { Input } from '@jetbrains/ring-ui/components/input/input';
 
 class Widget extends Component {
   static propTypes = {
     dashboardApi: PropTypes.object,
     registerWidgetApi: PropTypes.func,
     currentSprintMode: PropTypes.bool,
+    agiles: PropTypes.array,
+    agile: PropTypes.object,
+    sprint: PropTypes.object,
+    minutesADay: PropTypes.number,
+    minutesWarning: PropTypes.number
   };
   
   static toSelectItem = it => it && {
@@ -32,16 +46,19 @@ class Widget extends Component {
     model: it
   };
 
+  static numberToSelectItem = it => Widget.toSelectItem({id: it, name: `${it}m`});
+
   constructor(props) {
     super(props);
     const {registerWidgetApi, dashboardApi} = props;
-
+    console.log(props);
     this.state = {
       isConfiguring: false,
       agiles: [],
       agile: props.agile,
       sprint: props.sprint,
-      currentSprintMode: props.currentSprintMode
+      currentSprintMode: props.currentSprintMode,
+      minutesWarning: props.minutesWarning ? props.minutesWarning : 90
     };
 
     registerWidgetApi({
@@ -51,13 +68,13 @@ class Widget extends Component {
   }
   
   componentDidMount() {
-    const {dashboardApi} = this.props;
-    this.initialize(dashboardApi);
+    this.initialize();
   }
 
-  async initialize(dashboardApi) {
+  async initialize() {
     this.loading = true;
     
+    console.log('api', this.props.dashboardApi);
     let youtracks = await this.props.dashboardApi.loadServices('YouTrack');
     this.serviceId = youtracks[0].id;
 
@@ -66,12 +83,16 @@ class Widget extends Component {
   }
 
   async specifyAgile() {
-    let config = await this.props.dashboardApi.readConfig();
-    let agiles = await getAgiles(this.props.dashboardApi, this.serviceId);
+    const {dashboardApi} = this.props;
+    let config = await dashboardApi.readConfig();
+    let agiles = await getAgiles(dashboardApi, this.serviceId);
 
     if (config && config.agile) {
+      let timeTrackingSettings = await getGlobalTimeTrackingSettings(dashboardApi, this.serviceId);
+      let dates = getLastWorkDate(timeTrackingSettings.workDays);
+      this.setState({minutesADay: timeTrackingSettings.minutesADay });
       var query = `Board ${config.agile.name}: {${config.agile.currentSprint.name}}`;
-      let data = await getTimeTracking(this.props.dashboardApi, query, this.serviceId);
+      let data = await getTimeTracking(dashboardApi, query, this.serviceId, timeTrackingSettings, dates, config.minutesWarning);
       this.setState({data: data});
     }
 
@@ -80,8 +101,8 @@ class Widget extends Component {
   }
 
   saveConfig = async () => {
-    const {agile, sprint, currentSprintMode} = this.state;
-    await this.props.dashboardApi.storeConfig({agile, sprint, currentSprintMode});
+    const {agile, sprint, currentSprintMode, minutesWarning} = this.state;
+    await this.props.dashboardApi.storeConfig({agile, sprint, currentSprintMode, minutesWarning});
     this.setState({isConfiguring: false}, this.specifyAgile);
   };
 
@@ -90,6 +111,12 @@ class Widget extends Component {
     await this.props.dashboardApi.exitConfigMode();
     this.initialize(this.props.dashboardApi);
   };
+
+  changeMinutesWarning = selected => {
+    const minutes = (selected.model || {}).id || selected;
+    console.log('minutes changed', selected.model);
+    this.setState({minutesWarning: minutes});
+  }
 
   changeAgile = selected => {
     const selectedAgile = selected.model || selected;
@@ -128,7 +155,7 @@ class Widget extends Component {
 
     this.props.dashboardApi.enterConfigMode();
 
-    const {agile, agiles, sprint, currentSprintMode} = this.state;
+    const {agile, agiles, sprint, currentSprintMode, minutesWarning} = this.state;
     console.log('agiles2', agiles, this.state);
 
     const getSprintsOptions = () => {
@@ -147,8 +174,31 @@ class Widget extends Component {
       return sprintsOptions;
     };
 
+    const getWarningLimits = () => {
+      let data = [0, 30, 60, 90, 120, 180].map(Widget.numberToSelectItem);
+      console.log('warninglimit', data);
+      return data;
+    }
+
+    const getSelectedLimit = () => {
+      let limit = Widget.numberToSelectItem(minutesWarning);
+      console.log('selected limit', limit);
+      return limit;
+    }
+
     return (
       <div className="widget">
+
+        <div className="ring-form__group">
+            <Select
+                size={Select.Size.FULL}
+                data={getWarningLimits()}
+                selected={getSelectedLimit()}
+                onChange={this.changeMinutesWarning.bind(this)}
+                label="Abweichung für eine Warnung (Minuten, +/-)"
+                />
+           </div>
+
            <div className="ring-form__group">
               <Select
                 size={Select.Size.FULL}
@@ -197,7 +247,7 @@ class Widget extends Component {
   renderWidgetBody() {    
     console.log('serviceId', this.serviceId);
     console.log('render called');
-    const {data} = this.state;
+    const {data, minutesADay} = this.state;
 
     return (
       <div className="widget">
@@ -205,19 +255,27 @@ class Widget extends Component {
           data
           ?       
           (
-          <table>
-            <thead>
-              <tr>
-                <th>Member</th>
-                <th>Time spent</th>
-              </tr>
-            </thead>
-            <tbody>
-              {
-                this.renderTableRows(data)
-              }
-            </tbody>
-          </table>)
+            <div>
+              <Group>
+                <Text>Ziel:</Text>
+                <Text info>{ (minutesADay / 60)}h</Text>
+              </Group>
+
+              <table>
+                <thead>
+                  <tr>
+                    <th></th>
+                    <th align="left">Entwickler</th>
+                    <th align="right">Aufgewendet</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {
+                    this.renderTableRows(data)
+                  }
+                </tbody>
+              </table>
+          </div>)
           : (
             <EmptyWidget
               face={EmptyWidgetFaces.JOY}
@@ -255,15 +313,16 @@ class Widget extends Component {
       {
         let isExceeding = item.exceedThreshold;
         return <tr style={{color: isExceeding ? 'red': 'green'}} key={item.userName}>
+          <td><Avatar size={Size.Size48} url={item.avatar}/></td>
           <td>{item.userName}</td>
-          <td>{item.spentTimeDisplay}</td>
+          <td><Tag rgTagIcon={ isExceeding ? userWarning: checkmarkIcon} rgTagTitle="I am an icon title" readOnly>{item.spentTimeDisplay}</Tag></td>
         </tr>
       }
     
     );
   }
-  
 }
+
 
 DashboardAddons.registerWidget((dashboardApi, registerWidgetApi) =>
   render(
