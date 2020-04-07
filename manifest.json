@@ -1,0 +1,15 @@
+{
+  "key": "last-workday-time-tracking-widget",
+  "name": "Last workday time tracking widget",
+  "version": "1.0.0",
+  "description": "A widget which lets you track the time of the last work day of your team",
+  "author": "Benjamin Schäublin",
+  "products": {
+    "Hub": "2018.2",
+    "YouTrack": "2018.2"
+  },
+  "dependencies": {
+    "YouTrack": ">2018.2",
+    "Hub": ">2018.2"
+  }
+}
