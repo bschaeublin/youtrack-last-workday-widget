@@ -50,7 +50,7 @@ class Widget extends Component {
 
   constructor(props) {
     super(props);
-    const {registerWidgetApi, dashboardApi} = props;
+    const {registerWidgetApi} = props;
     console.log(props);
     this.state = {
       isConfiguring: false,
@@ -73,8 +73,6 @@ class Widget extends Component {
 
   async initialize() {
     this.loading = true;
-    
-    console.log('api', this.props.dashboardApi);
     let youtracks = await this.props.dashboardApi.loadServices('YouTrack');
     this.serviceId = youtracks[0].id;
 
@@ -274,12 +272,12 @@ class Widget extends Component {
                 data.filter(item => item.exceedThreshold).length === 0 ?
                 (<div class="time-track-face-container">
                   <span class="time-track-face">{EmptyWidgetFaces.HAPPY}</span>
-                  <Text info>Geschafft!</Text>
+                  <Text info>Einwandfrei!</Text>
                   </div>)
               : (<div class="time-track-face-container">
                   <span class="time-track-face">{EmptyWidgetFaces.OK}</span>
                   <br />
-                  <Text info>Optimierungspotenzial</Text>
+                  <Text info>Optimierungspotenzial?</Text>
                 </div>)
               }
               
