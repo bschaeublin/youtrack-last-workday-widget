@@ -29,7 +29,7 @@
   "dependencies": {
     "@jetbrains/icons": "3.6.0",
     "@jetbrains/logos": "1.1.8",
-    "@jetbrains/ring-ui": "3.0.8",
+    "@jetbrains/ring-ui": "3.1.12",
     "@babel/core": "^7.9.0",
     "@jetbrains/babel-preset-jetbrains": "^2.1.4",
     "babel-loader": "^8.1.0",
